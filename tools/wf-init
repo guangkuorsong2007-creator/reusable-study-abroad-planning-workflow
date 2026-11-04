@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+wf-init · 可复用留学规划工作流 · 运行实例脚手架生成器
+
+用法:
+    python3 tools/wf-init <运行目录> [选项]
+    python3 tools/wf-init RUN_SYN102 --case-id SYN-UG-102 \
+        --materials 分轮投放_SYN102/01_初始背景_SYN102.md \
+                    分轮投放_SYN102/02_学业材料_SYN102.md \
+                    分轮投放_SYN102/03_两国模拟规则_SYN102.md \
+                    分轮投放_SYN102/04_预算与规则更新_SYN102.md
+
+生成内容：
+    AGENTS.md              案例中立的工作约定（自 templates/Run_Template/）
+    01_虚构学生初始资料.md  首轮材料
+    02_/03_/04_*.md        后续材料（按内容自动归位）
+    CASE.md                当前事实与决策基线骨架
+    EVIDENCE.md            来源与局限索引骨架
+    CHECKPOINT.md          极简导航锚点骨架（≤ 4,000 字节）
+    CHANGELOG.md           审计轨迹骨架
+
+**不会**拷入任何答案卡、标准核对答案或评分量表——那会污染弱引导测试。
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shutil
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import wf_core  # noqa: E402
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATE_DIR = os.path.join(REPO_ROOT, "templates", "Run_Template")
+
+# 材料内容关键词 → 运行实例内的标准文件名
+# 顺序即优先级：更具体的关键词必须排在前面。
+# 例：「04_预算与规则更新_*.md」同时命中「预算」与「规则」，若「规则」在前会误归位为 03。
+MATERIAL_ROUTES = [
+    (r"预算|更新|变更|公告", "04_预算与规则更新.md"),
+    (r"学业|成绩|课程|摘录", "02_学业材料.md"),
+    (r"规则|国家|院校|方案", "03_两国模拟规则.md"),
+    (r"初始|背景|画像|资料", "01_虚构学生初始资料.md"),
+]
+
+
+def route_material(src_name):
+    """返回该材料的标准文件名；无法归位时返回 None。"""
+    for pattern, target in MATERIAL_ROUTES:
+        if re.search(pattern, src_name):
+            return target
+    return None
+
+
+def unique_target(src_name, used):
+    """归位到标准文件名；已占用则回退为去除原序号前缀的编号名。"""
+    target = route_material(src_name)
+    if target and target not in used:
+        return target
+    base = re.sub(r"^\d{1,2}_", "", src_name)
+    n = 1
+    while f"{n:02d}_{base}" in used:
+        n += 1
+    return f"{n:02d}_{base}"
+
+
+def skeleton(case_id):
+    return {
+        "CASE.md": f"""# CASE · 当前事实与决策基线
+
+- 案例编号：{case_id}
+- 更新时间：<模拟时钟时间>
+- 当前阶段：<阶段名称>
+
+---
+
+## 一、 个人基线事实与证据
+
+| 维度 | 核定事实 | 证据来源与性质 | 备注与限制 |
+| :--- | :--- | :--- | :--- |
+|  |  |  |  |
+
+## 二、 学业测算模型与情景分析
+
+## 三、 方案对比分析
+
+## 四、 阶段结论与下一步
+
+> **规则**
+> - 本文件是**唯一事实源**：同一事实只在此处记当前值，EVIDENCE / CHECKPOINT / CHANGELOG 只做引用。
+> - 数值照录输入材料，保留原始在档记录；不擅自换算 GPA / 百分制 / 国外绩点。
+> - **目标成绩不得当作实绩**；情景预测与已得实绩必须分开陈述。
+> - 未提供的信息一律记为「未知」，不得脑补。
+""",
+        "EVIDENCE.md": f"""# EVIDENCE · 来源与局限索引
+
+- 更新时间：<模拟时钟时间>
+- 证据范围：<封闭资料试验材料>
+
+| 证据编号 | 证据名称 | 核心主张与提炼 | 适用范围与局限性 |
+| :--- | :--- | :--- | :--- |
+|  |  |  |  |
+
+> **规则**
+> - 只登记来源 ID、支撑范围、局限与模拟日期。
+> - **不写决策结论**，不写规划主张本身（那些属于 CASE.md）。
+> - 每条主张都应能追溯到一条来源；无来源的主张不得写入 CASE。
+""",
+        "CHECKPOINT.md": f"""# CHECKPOINT · 活动检查点
+
+- 检查点时间：<模拟时钟时间>
+- 当前活动任务：<当前任务一句话>
+
+---
+
+## 一、 最新有效核心状态
+
+1. **<维度>**：<核心数字与状态>
+
+## 二、 未决条件与待核实事项
+
+1. <未决项>
+
+## 三、 文件指针
+
+- 详细个案：[CASE.md](CASE.md)
+- 证据来源：[EVIDENCE.md](EVIDENCE.md)
+- 变更记录：[CHANGELOG.md](CHANGELOG.md)
+
+> **硬限制**
+> - 总体积 **≤ 4,000 字节**（`wc -c CHECKPOINT.md` 自检）。
+> - **严禁**把旧 CHECKPOINT 全文嵌套进本文件；严禁递归堆叠历史对话。
+> - 只保留当前接续所需的最新状态与指针；演进细节写入 CHANGELOG.md。
+""",
+        "CHANGELOG.md": f"""# CHANGELOG · 变更日志
+
+## <YYYY-MM-DDTHH:MM:SSZ> · <阶段名称>
+
+- <本轮变更摘要：改了什么、依据哪条来源、为什么>
+
+> **规则**
+> - 只记**增量**历史与变更原因。
+> - 当前状态一律以 CASE.md 为准；本文件不重复叙述事实。
+""",
+    }
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="wf-init",
+        description="可复用留学规划工作流 · 运行实例脚手架生成器")
+    ap.add_argument("run_dir", help="要创建的运行实例目录")
+    ap.add_argument("--case-id", default="<CASE-ID>", help="案例编号，如 SYN-UG-102")
+    ap.add_argument("--materials", nargs="+", metavar="FILE",
+                    help="投放材料（按顺序），自动归位到标准文件名")
+    ap.add_argument("--agent-file", help="自定义 AGENTS.md 来源（默认取 templates/Run_Template/AGENTS.md）")
+    ap.add_argument("--force", action="store_true", help="覆盖已存在的文件")
+    args = ap.parse_args()
+
+    run_dir = os.path.abspath(args.run_dir)
+    if os.path.exists(run_dir) and os.listdir(run_dir) and not args.force:
+        print(f"✗ 目录已存在且非空：{run_dir}\n  加 --force 可覆盖同名文件。")
+        sys.exit(1)
+    os.makedirs(run_dir, exist_ok=True)
+
+    written = []
+
+    # ---- AGENTS.md
+    agent_src = args.agent_file or os.path.join(TEMPLATE_DIR, "AGENTS.md")
+    if not os.path.exists(agent_src):
+        print(f"✗ 找不到 AGENTS.md 模板：{agent_src}")
+        sys.exit(1)
+    dst = os.path.join(run_dir, "AGENTS.md")
+    shutil.copyfile(agent_src, dst)
+    written.append(("AGENTS.md", os.path.getsize(dst)))
+
+    # ---- 材料
+    used_targets = set()
+    for i, src in enumerate(args.materials or []):
+        if not os.path.exists(src):
+            print(f"✗ 材料不存在：{src}")
+            sys.exit(1)
+        base = os.path.basename(src)
+        target = unique_target(base, used_targets)
+        used_targets.add(target)
+        dst = os.path.join(run_dir, target)
+        shutil.copyfile(src, dst)
+        written.append((target, os.path.getsize(dst)))
+
+    # ---- 四文件骨架
+    for name, body in skeleton(args.case_id).items():
+        dst = os.path.join(run_dir, name)
+        with open(dst, "w", encoding="utf-8") as f:
+            f.write(body)
+        written.append((name, os.path.getsize(dst)))
+
+    print(f"✓ 已生成运行实例：{run_dir}")
+    print()
+    for name, size in written:
+        print(f"    {name:<26} {size:>7,} B")
+    print()
+    print("下一步：")
+    print("  1. 按投放包逐轮投放（形态 A 见 simulations/规划流程模拟包_v0.3/Run_Template/03_外部投放包_文件读写版.md）")
+    print("  2. 完成后校验： python3 tools/wf-verify " + run_dir)
+    if not args.materials:
+        print("  ⚠ 未提供 --materials，运行实例中只有骨架与 AGENTS.md，需自行拷入投放材料。")
+
+
+if __name__ == "__main__":
+    main()

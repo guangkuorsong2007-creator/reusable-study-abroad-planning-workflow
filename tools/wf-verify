@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+wf-verify · 可复用留学规划工作流 · 运行实例自洽性校验器
+
+用法:
+    python3 tools/wf-verify <运行目录> [选项]
+    python3 tools/wf-verify ~/.path/to/RUN_SYN102 --json
+
+选项:
+    --materials FILE[,FILE...]  指定用于均分复算的学业材料（默认自动发现）
+    --denylist FILE              额外真实院校/敏感词黑名单，每行一条
+    --case-limit N               CASE.md 软上限字节数（默认 10000）
+    --json                       输出机器可读 JSON
+    --strict                     WARN 也计入失败（退出码非 0）
+    --quiet                      仅输出结论
+
+判定依据：**落盘文件本体**。不采信任何自述结论。
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import wf_core  # noqa: E402
+
+
+def _supports_color():
+    return sys.stdout.isatty() and os.environ.get("NO_COLOR") is None
+
+
+C = {
+    "red": "\033[31m", "yellow": "\033[33m", "green": "\033[32m",
+    "cyan": "\033[36m", "bold": "\033[1m", "dim": "\033[2m", "reset": "\033[0m",
+}
+
+
+def paint(text, color):
+    if not _supports_color() or color not in C:
+        return text
+    return C[color] + text + C["reset"]
+
+
+def render(rep, strict=False):
+    out = []
+    out.append(paint("wf-verify 1.0 · 运行实例自洽性校验", "bold"))
+    out.append(paint(f"目标：{rep.target}", "dim"))
+    out.append("")
+
+    for title, rows in rep.sections:
+        out.append(paint(f"── {title} " + "─" * max(0, 40 - len(title)), "cyan"))
+        if not rows:
+            out.append("  （无）")
+        for sym, text in rows:
+            color = {"✓": "green", "✗": "red", "!": "yellow",
+                     "ℹ": "dim", "·": "", "⚠": "yellow"}.get(sym, "")
+            out.append(f"  {paint(sym, color)} {text}")
+        out.append("")
+
+    out.append(paint("── 判定明细 " + "─" * 30, "cyan"))
+    if not rep.findings:
+        out.append(paint("  ✓ 无任何问题", "green"))
+    for f in rep.findings:
+        color = {"ERROR": "red", "WARN": "yellow", "INFO": "dim"}.get(f.level, "")
+        out.append(f"  {paint(f.level, color)} [{f.code}] {f.title}")
+        if f.detail:
+            out.append(f"        详情：{f.detail}")
+        if f.hint:
+            out.append(paint(f"        建议：{f.hint}", "dim"))
+    out.append("")
+
+    n_err, n_warn = len(rep.errors), len(rep.warns)
+    if n_err:
+        verdict = paint(f"结论：未通过 — {n_err} 个 ERROR, {n_warn} 个 WARN", "red")
+    elif n_warn and strict:
+        verdict = paint(f"结论：未通过(strict) — {n_err} 个 ERROR, {n_warn} 个 WARN", "red")
+    elif n_warn:
+        verdict = paint(f"结论：通过（附 {n_warn} 个 WARN）— 0 个 ERROR", "yellow")
+    else:
+        verdict = paint("结论：通过 — 0 个 ERROR, 0 个 WARN", "green")
+    out.append(verdict)
+    return "\n".join(out)
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="wf-verify",
+        description="可复用留学规划工作流 · 运行实例自洽性校验器")
+    ap.add_argument("run_dir", help="运行实例目录")
+    ap.add_argument("--materials", help="用于均分复算的材料文件（逗号分隔）")
+    ap.add_argument("--denylist", help="额外敏感词黑名单文件")
+    ap.add_argument("--case-limit", type=int, default=wf_core.CASE_SOFT_LIMIT)
+    ap.add_argument("--json", action="store_true", help="输出 JSON")
+    ap.add_argument("--strict", action="store_true", help="WARN 也算失败")
+    ap.add_argument("--quiet", action="store_true", help="仅输出结论")
+    args = ap.parse_args()
+
+    materials = args.materials.split(",") if args.materials else None
+    denylist = []
+    if args.denylist and os.path.exists(args.denylist):
+        denylist = [l.strip() for l in wf_core.read(args.denylist).splitlines()
+                    if l.strip() and not l.startswith("#")]
+
+    rep = wf_core.verify_run(args.run_dir, materials, denylist, args.case_limit)
+
+    if args.json:
+        print(json.dumps({
+            "target": rep.target,
+            "ok": rep.ok,
+            "errors": len(rep.errors),
+            "warns": len(rep.warns),
+            "stats": rep.stats,
+            "findings": [{
+                "level": f.level, "code": f.code, "title": f.title,
+                "detail": f.detail, "hint": f.hint,
+            } for f in rep.findings],
+        }, ensure_ascii=False, indent=2))
+    elif args.quiet:
+        print("PASS" if rep.ok and not (args.strict and rep.warns) else "FAIL")
+    else:
+        print(render(rep, args.strict))
+
+    sys.exit(0 if (rep.ok and not (args.strict and rep.warns)) else 1)
+
+
+if __name__ == "__main__":
+    main()
