@@ -1,0 +1,26 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- macOS ----
+.DS_Store
+.AppleDouble
+._*
+
+# ---- 编辑器 ----
+.vscode/
+.idea/
+*.swp
+
+# ---- 外部投放运行目录（每次投放独立留档，不入库）----
+# 投放结果请归档至 simulations/规划流程模拟包_v0.3/评测记录/外部投放_<客户端>_<日期>/
+RUN_SYN102/
+RUN_SYN102_PASTE/
+RUN_*/
+
+# ---- 本地私有资料（严禁入库）----
+*.private.md
+_私有/

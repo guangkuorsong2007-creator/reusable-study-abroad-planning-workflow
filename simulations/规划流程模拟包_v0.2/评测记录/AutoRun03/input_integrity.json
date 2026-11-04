@@ -1,0 +1,27 @@
+{
+  "AutoRun03/AGENTS.md": {
+    "source_template": "Run_Template/AGENTS.md",
+    "sha256": "ff6cc43530cfb006710a5e5351da0f46720fff19a71899ea9bb0c9398e3bee9e",
+    "matches_source": true
+  },
+  "AutoRun03/01_虚构学生初始资料.md": {
+    "source_template": "分轮投放_SYN102/01_初始背景_SYN102.md",
+    "sha256": "93327f058862428df68e62a8058005b33190f772a58367ed6f09814d401d75a7",
+    "matches_source": true
+  },
+  "AutoRun03/02_学业材料.md": {
+    "source_template": "分轮投放_SYN102/02_学业材料_SYN102.md",
+    "sha256": "aa2240de7b117adb5ad2286388e1990810a5381a5d4b590d9d5a8d3b2688a89e",
+    "matches_source": true
+  },
+  "AutoRun03/03_两国模拟规则.md": {
+    "source_template": "分轮投放_SYN102/03_两国模拟规则_SYN102.md",
+    "sha256": "c0c90f670543d3b65db816c6999e4855783280d0dbebf5a13f714dd18ea194cd",
+    "matches_source": true
+  },
+  "AutoRun03/04_预算与规则更新.md": {
+    "source_template": "分轮投放_SYN102/04_预算与规则更新_SYN102.md",
+    "sha256": "c8dc55c000a18d755ec946ed468d8f1583c88f8a8f4e82fcef34d6131a919d98",
+    "matches_source": true
+  }
+}

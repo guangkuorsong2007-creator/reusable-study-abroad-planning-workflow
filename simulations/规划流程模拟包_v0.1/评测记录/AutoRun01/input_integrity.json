@@ -1,0 +1,27 @@
+{
+  "AGENTS.md": {
+    "copy_sha256": "527fa5de7f1ebb4c5072606b551734db7a40f7435f97ff2d6d24aa34c3d49148",
+    "source_sha256": "527fa5de7f1ebb4c5072606b551734db7a40f7435f97ff2d6d24aa34c3d49148",
+    "equal": true
+  },
+  "01_虚构学生初始资料.md": {
+    "copy_sha256": "69b3b7c3d9c08a0ee26c608cde2be4c925654cdf745c130de206afb6e8b38c8c",
+    "source_sha256": "69b3b7c3d9c08a0ee26c608cde2be4c925654cdf745c130de206afb6e8b38c8c",
+    "equal": true
+  },
+  "02_学业材料.md": {
+    "copy_sha256": "96ed7ead495653322bd217e9c0daf288c9df5e2cdb177eaaa88a0b797d7770e1",
+    "source_sha256": "96ed7ead495653322bd217e9c0daf288c9df5e2cdb177eaaa88a0b797d7770e1",
+    "equal": true
+  },
+  "03_两国模拟规则.md": {
+    "copy_sha256": "8f519fcfe06202ece77bcc904a42ba7e4884404d7010ac4b4a8ada3180d727cf",
+    "source_sha256": "8f519fcfe06202ece77bcc904a42ba7e4884404d7010ac4b4a8ada3180d727cf",
+    "equal": true
+  },
+  "04_预算与规则更新.md": {
+    "copy_sha256": "c96ac47faba1ff7a44b5a85dc7dadc18056d3914efe3ba92157f3a866e829c0c",
+    "source_sha256": "c96ac47faba1ff7a44b5a85dc7dadc18056d3914efe3ba92157f3a866e829c0c",
+    "equal": true
+  }
+}

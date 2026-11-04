@@ -1,0 +1,18 @@
+{
+  "CASE.md": {
+    "bytes": 12098,
+    "sha256": "1bccd4a4f6a3fe028fcc52ba7800c14abb8d7f61bc83cc7068270739e37ec71f"
+  },
+  "EVIDENCE.md": {
+    "bytes": 3966,
+    "sha256": "5a7dc36d5a9bd18ab34ab373f5aff94034b7c24f7684b18e24fcccbf6af2cca9"
+  },
+  "CHECKPOINT.md": {
+    "bytes": 2500,
+    "sha256": "a1769f3b67521d4662fb5b08390d4ab46bed16c6a8cb2749e588357d054d2760"
+  },
+  "CHANGELOG.md": {
+    "bytes": 2515,
+    "sha256": "9888c691e651180a5e6f4bd1e7060621cff2611de1066dddc5fd063231cbee83"
+  }
+}
