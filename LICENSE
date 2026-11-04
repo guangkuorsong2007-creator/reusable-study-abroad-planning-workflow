@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 可复用留学规划流程 · Reusable Study Abroad Planning Workflow
+Copyright (c) 2026 可复用留学规划工作流程 · Reusable Study Abroad Planning Workflow
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,16 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-## 数据合规声明（Data Compliance Notice）
-
-本仓库内全部案例数据均为**合成夹具**，不含任何真实个人信息：
-
-- 学生姓名一律使用代号（如 SYN-UG-101 / SYN-UG-102、李同学）；
-- 院校一律使用虚构名称（如海岚大学、松岚大学、兰泽国、澄湾国、沧澜国）；
-- 法规、签证与居留条款均为虚构夹具，**不构成任何现实法律或政策建议**；
-- 本仓库内容仅供工作流方法论评测、教学与顾问培训使用。
-
-使用者若基于本仓库生成交付物，须自行确保未引入真实申请人的个人数据。

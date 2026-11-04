@@ -10,7 +10,7 @@ Applies to every agent working on the Reusable Study Abroad Planning Workflow pr
 ### 1. 绝对隐私隔离与数据脱敏 (Zero Real Data Red Line)
 - **严禁引入任何真实个人数据**：绝不允许在测试、代码、模板或方案中引入任何真实申请人的姓名、学号、真实就读院校（如天津师范大学等）、真实成绩单或真实家庭财务数据；
 - **全量采用合成夹具**：所有案例测试必须使用脱敏或完全虚构的规则与画像（例如：SYN-UG-101/102、虚构国别“松岚国/澄湾国/兰泽国/沧澜国”）；
-- **产品化与可共享标准**：本仓库所有文件必须具备随时公开、分发给第三方顾问或开源评测的合规性。
+- **产品化与可共享标准**：本仓库所有文件必须具备随时公开、分发给第三方顾问或开源评测的合规性。数据合规边界见 `DATA_COMPLIANCE.md`，并由 `tools/scan_repo.py` 在 CI 中持续校验。
 
 ### 2. 状态文件精简与解耦规约 (Decoupled State Standard)
 - **运行实例四文件规范命名**：`CASE.md`（当前事实与决策基线）、`EVIDENCE.md`（来源与局限索引）、`CHECKPOINT.md`（极简导航锚点）、`CHANGELOG.md`（审计轨迹）；
