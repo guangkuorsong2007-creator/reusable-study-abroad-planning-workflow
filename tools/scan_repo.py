@@ -95,14 +95,17 @@ def git_available():
 
 
 def tracked_files():
-    r = subprocess.run(["git", "ls-files"], capture_output=True, text=True, cwd=REPO)
-    return set(r.stdout.splitlines())
+    # 必须用 -z：git 默认会对非 ASCII 路径做八进制转义（core.quotepath），
+    # 逐行解析会与真实 UTF-8 路径比对不上（CI 环境即如此，本地被
+    # core.quotepath=false 掩盖）。-z 输出 NUL 分隔且永不转义。
+    r = subprocess.run(["git", "ls-files", "-z"], capture_output=True, cwd=REPO)
+    return set(p for p in r.stdout.decode("utf-8", "replace").split("\0") if p)
 
 
 def ignored_files():
     r = subprocess.run(["git", "ls-files", "--others", "--ignored",
-                        "--exclude-standard"], capture_output=True, text=True, cwd=REPO)
-    return set(r.stdout.splitlines())
+                        "--exclude-standard", "-z"], capture_output=True, cwd=REPO)
+    return set(p for p in r.stdout.decode("utf-8", "replace").split("\0") if p)
 
 
 
@@ -167,8 +170,10 @@ def main():
         base = os.path.dirname(rel)
         text = wf_core.read(os.path.join(REPO, rel))
         for m in re.findall(r"\]\(([^)]+)\)", text):
-            # 仅校验**相对**链接；file:// 与 http(s) 属绝对引用，由绝对路径检查项负责
-            if m.startswith(("http://", "https://", "file://", "#", "mailto:")):
+            # 仅校验**相对**链接。
+            # - file:// 与 http(s)：外部引用，由绝对路径检查项负责
+            # - 以 / 开头：绝对文件系统路径（冻结快照中的历史产物），同上
+            if m.startswith(("http://", "https://", "file://", "#", "mailto:", "/")):
                 continue
             total += 1
             target = os.path.normpath(os.path.join(REPO, base, m))
