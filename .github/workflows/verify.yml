@@ -1,0 +1,51 @@
+name: verify
+
+# 可复用留学规划工作流 · 持续验证
+# 触发条件：推送、PR、手动触发
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: 证据链与工具回归
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 工具与证据链自测
+        # 覆盖：证据链哈希完整性、基线判定、7 类阴性用例、跨包一致性
+        run: python3 tools/selftest.py
+
+      - name: 基线重放幂等（重跑后工作区必须零变更）
+        # run_autorun03.py 是确定性重放器；若产物发生任何字节漂移即视为回归
+        run: |
+          python3 "simulations/规划流程模拟包_v0.2/run_autorun03.py"
+          git diff --exit-code
+
+      - name: 现行基线运行实例校验
+        # AutoRun03 必须全绿（0 ERROR / 0 WARN）
+        run: python3 tools/wf-verify "simulations/规划流程模拟包_v0.2/AutoRun03" --strict
+
+      - name: 外部投放包生成器幂等
+        # 投放包与 MANIFEST 由脚本生成；重跑后必须与已提交内容一致
+        run: |
+          python3 "simulations/规划流程模拟包_v0.3/build_delivery.py"
+          git diff --exit-code
+
+      - name: 隐私红线与死链扫描
+        # 仓库可公开分发：不得出现真实个人数据模式；文档相对链接必须可达
+        run: |
+          python3 tools/scan_repo.py
+
+      - name: 变更摘要
+        if: always()
+        run: git diff --stat || true

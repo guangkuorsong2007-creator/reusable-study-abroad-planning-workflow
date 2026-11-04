@@ -1,13 +1,33 @@
 # tools · 运行实例工具集
 
-v0.4 规划顾问工具化的交付物。两个**零依赖**（仅用 Python 3 标准库）的命令行工具：
+v0.4 规划顾问工具化的交付物。四个**零依赖**（仅用 Python 3 标准库）的命令行工具：
 
 | 工具 | 作用 |
 | :--- | :--- |
 | `wf-verify` | 运行实例自洽性校验器——四文件结构、加权均分复算、跨文件数值一致性、嵌套检测、隐私红线扫描 |
 | `wf-init` | 运行实例脚手架生成器——一键生成案例中立的运行目录与四文件骨架 |
+| `selftest` | 工具与证据链一体化自测——18 项检查，一条命令跑完全部回归 |
+| `scan_repo` | 仓库级可分发性扫描——隐私红线、真实院校名、死链、硬编码绝对路径 |
 
 **判定依据只有落盘文件本体**，不采信任何自述结论。路径全部相对脚本所在位置解析，仓库克隆到任意路径即可运行。
+
+---
+
+## 快速开始
+
+```bash
+# 1. 生成一个运行实例
+python3 tools/wf-init RUN_SYN102 --case-id SYN-UG-102 --materials <材料...>
+
+# 2. 投放完成后校验
+python3 tools/wf-verify RUN_SYN102
+
+# 3. 全量回归自测（本地跑一次，等同 CI）
+python3 tools/selftest.py --replay
+
+# 4. 仓库可分发性扫描
+python3 tools/scan_repo.py
+```
 
 ---
 
@@ -40,7 +60,12 @@ python3 tools/wf-verify <运行目录> [选项]
 | E006/E007 | ERROR | `CHECKPOINT` 嵌套他文件正文 / 内部长块自重复 | 历史真实缺陷（4572 B 嵌套） |
 | E008 | ERROR | `CHECKPOINT` 缺少指向其余文件的指针 | 量表第 12 项「纯文件接续」 |
 | E009 | ERROR | 检出真实个人数据或真实院校名 | AGENTS.md 第 1 条红线 |
+| E010 | ERROR/WARN | EVIDENCE 证据表列数不足、局限列为空或占位符 | 量表第 15 项「全流程透明度」 |
 | W002–W006 | WARN | 材料缺失、EVIDENCE 无来源编号、CHANGELOG 无日期条目、尚未声明均分 | 结构完整性 |
+| W007 | WARN | CHANGELOG 存在空洞条目（无实质内容） | 审计轨迹有效性 |
+| W008 | WARN | CASE.md 必备章节不完备（事实基线/学业测算/方案对比/结论下一步） | `01_Framework.md` 规范状态树 |
+| W009 | WARN | CASE.md 未声明等级制课程的排除处置 | 量表第 2 项 |
+| W010 | WARN | CASE 与 CHECKPOINT 的金额锚点无交集 | 量表第 10 项 |
 
 ### 加权均分复算
 
@@ -126,7 +151,57 @@ RUN_SYN102/
 | `AutoRun01` | 未通过（1 ERROR） | **真实历史缺陷**：`CHECKPOINT` 4,572 B 超限、`CASE` 超软上限——正是 v0.2 修复的问题 |
 | `wf-init` 骨架态 | 通过（附 4 个待填类 WARN） | 尚未声明均分等，属正常初始态 |
 
-阴性用例回归（7/7 正确报 FAIL，退出码 1）：CHECKPOINT 超体积、误用算术均分、CHECKPOINT 嵌套旧全文、缺失文件、真实院校与学号泄漏、跨文件均分漂移、空文件。
+阴性用例回归（7/7 正确报 FAIL，退出码 1）：CHECKPOINT 超体积、误用算术均分、CHECKPOINT 嵌套旧全文、缺失文件、真实院校与学号泄漏、跨文件均分漂移、空文件。阳性用例退出码 0。
+
+---
+
+## selftest · 一体化自测
+
+```bash
+python3 tools/selftest.py [--replay]
+```
+
+一条命令跑完全部回归（17 项，`--replay` 时 18 项）：
+
+| 组 | 检查 |
+| :--- | :--- |
+| **证据链完整性** | AutoRun03/AutoRun02 的 `input_integrity`；PRE/FINAL 阶段快照 manifest；v0.3 `MANIFEST.json`；v0.3 投放材料与 v0.2 源逐字节一致；v0.3 评测设计与 v0.2 一致 |
+| **基线判定** | AutoRun02/03 必须全绿；AutoRun01 必须命中已知历史缺陷（`CHECKPOINT` 4,572 B 超限） |
+| **阴性用例** | 7 类破坏必须被检出并报 ERROR（夹具在临时目录生成，不入库） |
+| **重放幂等** | `--replay`：重跑 `run_autorun03.py` 后产物必须逐字节不变 |
+
+---
+
+## scan_repo · 仓库级可分发性扫描
+
+```bash
+python3 tools/scan_repo.py
+```
+
+本产品库要公开分发给第三方顾问与开源评测，因此持续检查四件事：
+
+1. **隐私红线**——任何文件都不得出现真实个人数据模式（手机号 / 身份证 / 学号 / 银行卡）；
+2. **真实院校名**——只允许作为**反面示例**出现在治理文档（`AGENTS.md`、量表方案）中，**绝不**允许出现在任何 `simulations/` 产物内；
+3. **死链**——全部 markdown 相对链接必须可达；
+4. **硬编码绝对路径**——操作型文档不得写死本机路径；仅历史存档与决策/日志记录中的可追溯引用被豁免。
+
+工具自身的黑名单与阴性夹具（`tools/wf_core.py`、`tools/selftest.py`）按设计含真实校名与学号模式，已显式豁免。
+
+---
+
+## 持续集成
+
+`.github/workflows/verify.yml` 在 **push / PR / 手动触发** 时执行五步：
+
+| 步骤 | 内容 |
+| :--- | :--- |
+| 1 | `tools/selftest.py` —— 工具与证据链自测 |
+| 2 | 重跑 `run_autorun03.py` 后 `git diff --exit-code` —— 重放产物必须零漂移 |
+| 3 | `tools/wf-verify` 现行基线 `--strict` —— 必须 0 ERROR 且 0 WARN |
+| 4 | 重跑 `build_delivery.py` 后 `git diff --exit-code` —— 投放包生成器幂等 |
+| 5 | `tools/scan_repo.py` —— 隐私、死链与绝对路径 |
+
+> 该工作流在仓库推送到 GitHub 后自动生效；本地可用 `python3 tools/selftest.py --replay && python3 tools/scan_repo.py` 等价复现。
 
 ---
 

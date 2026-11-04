@@ -57,8 +57,12 @@
 ├── tools/                            # v0.4 工具化（零依赖，仅 Python 3 标准库）
 │   ├── wf-verify                      # 运行实例自洽性校验器
 │   ├── wf-init                        # 运行实例脚手架生成器
+│   ├── selftest.py                    # 工具与证据链一体化自测
+│   ├── scan_repo.py                   # 仓库级可分发性扫描
 │   ├── wf_core.py                     # 共用核心库
 │   └── README.md                      # 用法与检查项说明
+│
+├── .github/workflows/verify.yml      # 持续验证（push / PR 自动触发）
 │
 └── simulations/                       # 全量历史基线与自动化模拟资产
     ├── 规划流程模拟包_v0.1/             # v0.1 冻结基线 (AutoRun01)
@@ -105,3 +109,12 @@ python3 tools/wf-init RUN_SYN102 --case-id SYN-UG-102 --materials <材料...>
 ```
 
 `wf-verify` 可机械判定四文件结构、`CHECKPOINT` 体积硬上限、**加权均分复算**（自动排除等级制课程）、跨文件数值漂移、历史全文嵌套与隐私红线；其余判断题仍需按 15 项量表人工复核。详见 [`tools/README.md`](tools/README.md)。
+
+### 4. 持续验证
+
+```bash
+python3 tools/selftest.py --replay   # 证据链 + 基线 + 阴性用例 + 重放幂等
+python3 tools/scan_repo.py            # 隐私红线、真实院校名、死链、硬编码绝对路径
+```
+
+仓库另含 [`.github/workflows/verify.yml`](.github/workflows/verify.yml)，在推送到 GitHub 后于每次 push / PR 自动执行上述校验、重放幂等与投放包生成器幂等检查。

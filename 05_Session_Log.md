@@ -124,3 +124,30 @@
 - **Files Created**: `tools/wf_core.py`、`tools/wf-verify`、`tools/wf-init`、`tools/README.md`。
 - **Files Modified**: `README.md`（目录结构 + 工具化使用说明）、`02_Roadmap.md`（v0.4 标记交付）、`00_Status.md`、`03_Decisions.md`（新增 WF-D005）、`05_Session_Log.md`。
 - **Next**: 待用户执行 v0.3 外部投放；回收后按结果记录表复核归档。工具的 CI 接入与更多指标自动判定列为 v0.4 后续待办。
+
+---
+
+## 2026-11-04T12:07:47+08:00 · MCode (mavis) · v0.4 收尾：判定扩展、持续集成与仓库可分发性扫描 (WF-D006)
+
+- **Request**: 用户批准推进 v0.4 收尾两件事——「接入 CI」与「扩展自动判定范围」。
+- **Execution & Outcome**:
+  1. **判定范围扩展（新增 5 项检查）**：`E010` EVIDENCE 证据表列数不足 / 局限列为空或占位符；`W007` CHANGELOG 空洞条目；`W008` CASE 必备章节不完备；`W009` CASE 未声明等级制课程排除处置；`W010` CASE 与 CHECKPOINT 金额锚点无交集。
+  2. **`tools/selftest.py`**：证据链哈希完整性（input_integrity / PRE·FINAL 快照 manifest / v0.3 MANIFEST）+ 跨包一致性（v0.3 投放材料与评测设计须与 v0.2 源逐字节一致）+ 基线判定 + 7 类阴性用例（夹具临时生成，不入库）+ 可选 `--replay` 重放幂等。
+  3. **`tools/scan_repo.py`**：仓库级可分发性扫描——隐私红线、真实院校名只许出现在治理文档反面示例（`simulations/` 内一律禁止）、markdown 相对链接全可达、操作型文档不得硬编码本机绝对路径。
+  4. **`.github/workflows/verify.yml`**：push / PR / 手动触发五步——自测 → 重放幂等（`git diff --exit-code`）→ 现行基线 `--strict` → 投放包生成器幂等 → 仓库扫描。
+  5. **v0.1 用户面文档路径参数化**：教程与调度提示词的绝对路径及旧工作区表述（核验二者不在任何哈希覆盖范围内）。
+- **开发中修正的误判**（均由实测暴露）：
+  - CASE 章节完备性初版误报「缺结论与下一步」——实际章节名为「五、 破局调整方向与待核实事项」，关键词集合过窄，已改为语义等价集合；
+  - 非数值课程排除声明初版误报——原文是「**严禁计入**加权分母」，仅匹配「不计」二字会漏判，已改为否定式前置正则；
+  - `scan_repo.py` 初版把工具自身的黑名单与阴性夹具误判为违规，已改为**显式豁免并注明理由**（而非放宽规则）；
+  - `scan_repo.py` 初版把冻结快照中的 `file://` 绝对 URL 误判为死链，已改为只校验相对链接。
+- **验收（全部实测）**：
+  - 本地按 CI 五步逐条模拟执行，**全部通过**；
+  - `selftest.py --replay`：**18 项检查全通过**，重放后 10 个产物逐字节不变；
+  - `scan_repo.py`：0 项违规（2 条反面示例豁免记录），49 条相对链接全可达；
+  - 扫描器自身阴性用例：注入真实校名 + 学号 + 死链后正确报 3 项违规并以退出码 1 失败；
+  - `build_delivery.py` 重跑后 `simulations/` 零变更（生成器幂等）。
+- **Files Created**: `tools/selftest.py`、`tools/scan_repo.py`、`.github/workflows/verify.yml`。
+- **Files Modified**: `tools/wf_core.py`（新增检查与语义化关键词）、`tools/README.md`、`README.md`、`02_Roadmap.md`、`00_Status.md`、`03_Decisions.md`（新增 WF-D006）、`05_Session_Log.md`、`simulations/规划流程模拟包_v0.1/00_从这里开始_全流程教程.md` 与 `.../01_让Agent自动执行_调度提示词.md`（路径参数化）。
+- **Files NOT Modified**: 全部哈希覆盖产物（AutoRun01/02/03 产物、快照、manifest、转录、输入材料、答案卡）；`simulations/规划流程模拟包_v0.2/Run_Template/AGENTS.md`；`v0.3` 已发布投放包内容。
+- **Next**: 待用户执行 v0.3 外部投放；回收后按结果记录表复核归档。CI 在推送到 GitHub 后自动生效。

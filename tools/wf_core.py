@@ -374,6 +374,143 @@ def scan_privacy(text, extra_denylist=()):
     return hits
 
 
+# ---------------------------------------------------------------- 表格与章节解析
+
+def parse_markdown_tables(text):
+    """返回 [(表头单元格列表, [数据行单元格列表, ...])]，逐表解析。"""
+    tables = []
+    header, rows = None, []
+
+    def flush():
+        if header and rows:
+            tables.append((header, rows))
+
+    for line in text.splitlines():
+        s = line.strip()
+        if not s.startswith("|"):
+            flush()
+            header, rows = None, []
+            continue
+        cells = [c.strip() for c in s.strip("|").split("|")]
+        if all(set(c) <= set(":-* ") for c in cells if c):
+            continue                                   # 分隔行
+        if header is None:
+            header = cells
+        else:
+            rows.append(cells)
+    flush()
+    return tables
+
+
+def parse_sections(text):
+    """返回 [(标题, 正文)]，按 markdown 标题切分。"""
+    sections, cur, body = [], "(前言)", []
+    for line in text.splitlines():
+        if re.match(r"^#{1,6}\s+\S", line):
+            sections.append((cur, "\n".join(body)))
+            cur, body = line.strip("# ").strip(), []
+        else:
+            body.append(line)
+    sections.append((cur, "\n".join(body)))
+    return sections
+
+
+PLACEHOLDER_VALUES = {"", "-", "—", "无", "N/A", "n/a", "TBD", "待补充", "待定", "略"}
+
+
+def is_placeholder(cell):
+    return normalize_md(cell).strip().strip("*`").strip() in PLACEHOLDER_VALUES
+
+
+# ---------------------------------------------------------------- 语义检查
+
+# CASE.md 必备章节概念（任一关键词命中即视为该章节存在）
+REQUIRED_CASE_CONCEPTS = [
+    ("事实基线", ("事实", "基线", "背景", "个人基线")),
+    ("学业测算或情景", ("测算", "情景", "学业", "成绩", "加权")),
+    ("方案对比", ("方案", "对比", "路线", "比选", "全链条", "重估")),
+    ("结论与下一步", ("结论", "下一步", "阶段结论", "破局", "调整方向",
+                      "待核实", "行动", "后续动作")),
+]
+
+# 声明「等级制课程不计入分母」的表述
+# 注意否定式前置写法：`严禁计入加权分母` / `不得计入` —— 不能只匹配「不计」二字
+EXCLUSION_CTX = re.compile(
+    r"(?:严禁|不得|不能|不应|不可|不予|非)[^。；;\n]{0,6}计入"
+    r"|不计|不纳入|排除|隔离|不含|不作为分母|不计入"
+)
+
+
+def check_evidence_table(evid_text):
+    """检查 EVIDENCE 表格结构与局限列完整性。
+
+    返回 (rows, problems)；problems 中每项为 (级别, 说明)。
+    """
+    problems = []
+    rows = []
+    tables = parse_markdown_tables(evid_text)
+    target = None
+    for header, body in tables:
+        h = " ".join(normalize_md(c) for c in header)
+        if "局限" in h or "限制" in h:
+            target = (header, body)
+            break
+    if target is None:
+        problems.append(("WARN", "未找到含「局限」列的证据表格"))
+        return rows, problems
+    header, body = target
+    if len(header) < 4:
+        problems.append(("ERROR", f"证据表头仅 {len(header)} 列，缺少「主张」与「局限」列"))
+    for cells in body:
+        rows.append(cells)
+        if len(cells) < 4:
+            problems.append(("ERROR", f"证据行「{normalize_md(cells[0])[:24]}」仅 {len(cells)} 列"))
+            continue
+        if is_placeholder(cells[-1]):
+            problems.append(("WARN", f"证据「{normalize_md(cells[0])[:24]}」的局限列为空或为占位符"))
+    return rows, problems
+
+
+def check_case_sections(case_text):
+    """检查 CASE.md 必备章节是否齐备。返回缺失的概念列表。"""
+    sections = parse_sections(case_text)
+    headings = " ".join(h for h, _ in sections)
+    bodies = "\n".join(b for _, b in sections)
+    haystack = headings + "\n" + bodies
+    missing = []
+    for concept, keys in REQUIRED_CASE_CONCEPTS:
+        if not any(k in haystack for k in keys):
+            missing.append(concept)
+    return missing
+
+
+def check_changelog_entries(chg_text):
+    """检查 CHANGELOG 每条日期条目是否有实质内容。返回空洞条目列表。"""
+    entries = re.findall(r"^#{2,3}\s*\[?\d{4}-\d{2}-\d{2}.*$", chg_text, re.M)
+    if not entries:
+        return []
+    hollow = []
+    for title, body in parse_sections(chg_text):
+        if not re.match(r"\d{4}-\d{2}-\d{2}", title):
+            continue
+        bullets = [l for l in body.splitlines()
+                   if l.strip().startswith(("-", "*", "·")) and len(l.strip()) > 8]
+        if not bullets:
+            hollow.append(title[:40])
+    return hollow
+
+
+def extract_amounts(text):
+    """抽取「N 万元 / N万」金额，保留整数值。"""
+    t = normalize_md(text)
+    vals = set()
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*万", t):
+        v = _f(m.group(1))
+        if v is not None:
+            vals.add(round(v, 2))
+    return vals
+
+
 # ---------------------------------------------------------------- 校验主流程
 
 def verify_run(run_dir, materials=None, denylist=(), case_soft_limit=CASE_SOFT_LIMIT):
@@ -537,15 +674,74 @@ def verify_run(run_dir, materials=None, denylist=(), case_soft_limit=CASE_SOFT_L
             struct2_rows.append(("✗", "EVIDENCE 未检出来源编号行"))
             rep.add("WARN", "W004", "EVIDENCE.md 未检出来源编号",
                     "未匹配到形如 `| **SYN-L10** |` 或 `| **S01** |` 的证据行")
+        # E010 证据表结构与局限列完整性
+        _, ev_problems = check_evidence_table(evid_t)
+        for level, msg in ev_problems:
+            struct2_rows.append(("✗" if level == "ERROR" else "!", msg))
+            rep.add(level, "E010", "EVIDENCE 证据表结构或局限列不完整", msg,
+                    "每条证据都须写明支持范围与局限性，这是量表第 15 项「全流程透明度」的载体")
     if chg_t:
         entries = re.findall(r"^#{2,3}\s*\[?\d{4}-\d{2}-\d{2}", chg_t, re.M)
         if entries:
             struct2_rows.append(("✓", f"CHANGELOG 含 {len(entries)} 条日期化变更记录"))
+            hollow = check_changelog_entries(chg_t)
+            if hollow:
+                struct2_rows.append(("!", f"{len(hollow)} 条 CHANGELOG 条目无实质内容"))
+                rep.add("WARN", "W007", "CHANGELOG.md 存在空洞条目",
+                        "; ".join(hollow[:3]),
+                        "每条变更记录须写明改了什么、依据哪条来源、为什么")
         else:
             struct2_rows.append(("✗", "CHANGELOG 未检出日期化条目"))
             rep.add("WARN", "W005", "CHANGELOG.md 缺少日期化条目",
                     "未匹配到 `## YYYY-MM-DD...` 形式的变更标题")
     rep.section("结构要素", struct2_rows)
+
+    # ---- 5b. CASE 章节完备性
+    case_rows = []
+    missing_secs = check_case_sections(case_t)
+    if missing_secs:
+        case_rows.append(("!", f"CASE 缺少章节：{', '.join(missing_secs)}"))
+        rep.add("WARN", "W008", "CASE.md 必备章节不完备",
+                f"缺少 {', '.join(missing_secs)}",
+                "CASE 应覆盖：事实基线、学业测算与情景、方案对比、结论与下一步")
+    else:
+        case_rows.append(("✓", "CASE 必备章节齐备（事实基线 / 学业测算 / 方案对比 / 结论下一步）"))
+    rep.section("CASE 章节完备性", case_rows)
+
+    # ---- 5c. 非数值课程排除声明（量表第 2 项）
+    excl_rows = []
+    if avg is not None and avg.non_numeric:
+        names = [c.name for c in avg.non_numeric]
+        excl_rows.append(("·", f"材料含 {len(names)} 门非数值课程：{', '.join(names)}"))
+        if EXCLUSION_CTX.search(case_t):
+            excl_rows.append(("✓", "CASE 已声明排除/不计入分母的处置"))
+        else:
+            excl_rows.append(("!", "CASE 未见「不计入分母 / 隔离」类排除声明"))
+            rep.add("WARN", "W009", "CASE.md 未声明非数值课程的排除处置",
+                    f"材料含非数值课程 {', '.join(names)}，但 CASE 中未见排除说明",
+                    "量表第 2 项要求明确说明等级制课程不污染数值分母")
+    elif avg is not None:
+        excl_rows.append(("·", "材料无等级制非数值课程，跳过"))
+    rep.section("非数值课程排除声明", excl_rows)
+
+    # ---- 5d. 跨文件金额一致性
+    amt_rows = []
+    case_amt = extract_amounts(case_t)
+    ckpt_amt = extract_amounts(ckpt_t) if ckpt_t else set()
+    if case_amt and ckpt_amt:
+        inter = case_amt & ckpt_amt
+        if inter:
+            amt_rows.append(("✓", f"金额口径一致，共享锚点：{sorted(inter)[:6]}"))
+        else:
+            only_c = sorted(case_amt - ckpt_amt)
+            only_k = sorted(ckpt_amt - case_amt)
+            amt_rows.append(("!", f"金额锚点无交集 CASE={only_c[:6]} / CHECKPOINT={only_k[:6]}"))
+            rep.add("WARN", "W010", "CASE 与 CHECKPOINT 的金额锚点无交集",
+                    f"CASE={only_c[:8]}；CHECKPOINT={only_k[:8]}",
+                    "预算与成本类金额应在两份文件中同源，注意历史值与当前值是否已正确沉淀")
+    else:
+        amt_rows.append(("·", "金额信息不足，跳过"))
+    rep.section("跨文件金额一致性", amt_rows)
 
     # ---- 6. 隐私红线
     priv_rows = []
