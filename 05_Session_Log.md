@@ -151,3 +151,26 @@
 - **Files Modified**: `tools/wf_core.py`（新增检查与语义化关键词）、`tools/README.md`、`README.md`、`02_Roadmap.md`、`00_Status.md`、`03_Decisions.md`（新增 WF-D006）、`05_Session_Log.md`、`simulations/规划流程模拟包_v0.1/00_从这里开始_全流程教程.md` 与 `.../01_让Agent自动执行_调度提示词.md`（路径参数化）。
 - **Files NOT Modified**: 全部哈希覆盖产物（AutoRun01/02/03 产物、快照、manifest、转录、输入材料、答案卡）；`simulations/规划流程模拟包_v0.2/Run_Template/AGENTS.md`；`v0.3` 已发布投放包内容。
 - **Next**: 待用户执行 v0.3 外部投放；回收后按结果记录表复核归档。CI 在推送到 GitHub 后自动生效。
+
+---
+
+## 2026-11-04T12:47:42+08:00 · MCode (mavis) · 公开前合规审计与完全开源发布 (WF-D007)
+
+- **Request**: 用户决定「建远程并推上去」，并明确「准备完全开源」。
+- **Execution & Outcome**:
+  1. **认证与仓库状态核查**：`gh` CLI 已认证（`guangkuorsong2007-creator`，scope 含 `repo` + `workflow`，后者为 CI 所需）；本地仓库此前无 remote，分支 `main`，5 次提交，`.git` 体积 1.0 MB。
+  2. **公开前专项合规审计**（针对「即将永久公开」这一新状态）：
+     - 个人数据模式（手机号 / 身份证 / 学号 / 银行卡）：**0 处**；
+     - 真实就读院校 / 真实成绩单 / 真实家庭财务：**0 处**，全部为合成夹具；
+     - 真实院校名：2 处，**均在治理文档的反面示例语境**，由 `scan_repo.py` 显式豁免；
+     - 凭证 / `.env` / 私钥文件：**0 处**；
+     - git 全历史敏感模式扫描：**0 处**；
+     - 大文件：无（最大 36 KB）；
+     - 操作型文档硬编码绝对路径：**0 处**。
+  3. **唯一需用户裁定项**：`docs/规划工作流程复盘与复用草案.md` 含 4 处 Alberta、1 处 Canada，以第三人称方法论口吻描述工作流起源（用户本人规划历程），无可识别信息。已告知「推送后 git 历史固定、事后抹除需重写历史」的不可逆性，用户明确选择**原样推送**。
+  4. **`docs/真实官方来源核验报告_三项关键主张.md` 保留**：内容为加拿大 IRCC PGWP 公开政策，用于示范「主张须有官方来源支撑」的审计方法，非个人数据。
+  5. **README 新增「开源说明与参与方式」章节**：许可与 MIT 说明、数据合规声明（含「唯一真实世界内容」的边界交代）、5 条贡献建议（含「不得修改冻结基线」）、以及当前成熟度与**「请勿把单次内部试验推广为通用结论」**的声明。
+  6. **创建并推送**：`guangkuorsong2007-creator/reusable-study-abroad-planning-workflow`（public），添加 origin，推送 `main`，确认 GitHub Actions 工作流已识别。
+- **Files Modified**: `README.md`（新增开源说明章节）、`00_Status.md`、`03_Decisions.md`（新增 WF-D007）、`05_Session_Log.md`。
+- **Files NOT Modified**: `docs/规划工作流程复盘与复用草案.md`（按用户决定原样推送）；全部冻结基线与证据链资产。
+- **Next**: 待用户执行 v0.3 外部投放；CI 在首次推送后自动运行，可据其结果确认远端环境一致。
