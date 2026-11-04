@@ -64,4 +64,4 @@
 - `build_delivery.py`（路径相对化生成器，内置逐字内联自校验）。
 
 **遗留待办（不阻塞投放）**：
-- `01_Framework.md` 与 `README.md` 描述的四文件名为 `CHECKPOINT / 01_学生初始画像 / 02_选校与规划进展 / 03_会话流水日志`，而实际运行模板使用 `CASE / EVIDENCE / CHECKPOINT / CHANGELOG`——两套命名并存，角色对应但命名不一致，建议在 v0.4 统一。
+- ~~四文件命名两套并存~~ → **已结项 (WF-D003)**：统一以操作层 `CASE / EVIDENCE / CHECKPOINT / CHANGELOG` 为规范命名，概念层旧表述降级为 `01_Framework.md` 第二节的归位映射表；v0.1–v0.3 冻结基线不追溯重命名。已同步 `AGENTS.md`、`README.md`。
