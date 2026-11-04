@@ -174,3 +174,23 @@
 - **Files Modified**: `README.md`（新增开源说明章节）、`00_Status.md`、`03_Decisions.md`（新增 WF-D007）、`05_Session_Log.md`。
 - **Files NOT Modified**: `docs/规划工作流程复盘与复用草案.md`（按用户决定原样推送）；全部冻结基线与证据链资产。
 - **Next**: 待用户执行 v0.3 外部投放；CI 在首次推送后自动运行，可据其结果确认远端环境一致。
+
+---
+
+## 2026-11-04T12:50:56+08:00 · MCode (mavis) · 开源发布与 CI 首跑失败修复 (WF-D007 / WF-D008)
+
+- **Request**: 用户决定「建远程并推上去」，并明确「准备完全开源」。
+- **Execution & Outcome**:
+  1. **公开前专项合规审计**：个人数据模式 0 处；真实院校/成绩单/财务 0 处；凭证文件 0 处；git 全历史敏感模式 0 处；大文件无；操作型文档硬编码绝对路径 0 处。唯一需裁定项经用户明确选择为**原样推送**（见 WF-D007）。
+  2. **创建并推送公开仓库**：`guangkuorsong2007-creator/reusable-study-abroad-planning-workflow`（public），origin 已配置，`main` 已推送。
+  3. **拆分数据合规声明**：原 `LICENSE` 在 MIT 正文后追加中文声明导致 GitHub licensee 无法识别（仓库页显示无许可）。已将合规声明独立为 `DATA_COMPLIANCE.md`，`LICENSE` 恢复纯 MIT 正文，README 与 AGENTS.md 改为引用。
+  4. **CI 首跑失败 → 根因定位（关键）**：`v0.3 MANIFEST 存在不匹配`，缺失的是全部 4 个 `Run_Template/` 文件。
+     - **根因**：`.gitignore` 的 `RUN_*/` 在 macOS 默认 `core.ignorecase=true` 下**大小写不敏感**，误匹配了 `Run_Template/`；
+     - **影响**：8 个文件从未被提交——v0.3 的**两份外部投放包**、v0.2 的 Run_Template、**仓库根模板**。公开仓库因此是残缺的；
+     - **为何本地全绿**：本地工作区确有这些文件，工具读取的是真实文件；只有**远端 CI 的干净检出**才暴露缺失。
+  5. **修复**：`.gitignore` 改为精确前缀 `RUN_SYN*/` 并显式反忽略 `!**/Run_Template/`；补提交 8 个遗漏文件。
+  6. **新增守护**：`scan_repo.py` 增加「必需文件入库检查」——19 个必须随仓库发布的文件逐一校验存在性 + git 跟踪状态，并泛化报告「被 `.gitignore` 意外忽略」的文档/代码文件。守护有效性已实测（还原错误规则后正确报错并退出码 1）。
+- **Files Created**: `DATA_COMPLIANCE.md`。
+- **Files Modified**: `.gitignore`、`tools/scan_repo.py`（新增入库守护）、`README.md`、`AGENTS.md`、`LICENSE`、`03_Decisions.md`（新增 WF-D007 / WF-D008）、`05_Session_Log.md`、`00_Status.md`。
+- **Files Added to git（此前被误忽略）**: `simulations/规划流程模拟包_v0.2/Run_Template/` ×2、`simulations/规划流程模拟包_v0.3/Run_Template/` ×4、`templates/Run_Template/` ×2。
+- **Next**: 推送修复并确认 CI 转绿；随后待用户执行 v0.3 外部投放。

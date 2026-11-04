@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import re
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -53,6 +54,56 @@ ALLOWED_ABSOLUTE_FILES = {
 }
 
 ABSOLUTE_PATH = re.compile(r"/Users/[A-Za-z0-9_.\-]+/")
+
+# 必须随仓库发布的文件 —— 缺失或未被 git 跟踪即为发布事故
+# 背景：`.gitignore` 的 `RUN_*/` 在 core.ignorecase=true（macOS 默认）下大小写不敏感，
+# 误匹配了 `Run_Template/`，导致模板与**整个 v0.3 投放包**从未被提交。
+# 本地测试因文件确实存在于工作区而全绿，只有远端 CI 才暴露。见 WF-D008。
+REQUIRED_TRACKED_PATHS = [
+    "templates/Run_Template/AGENTS.md",
+    "templates/Run_Template/01_虚构学生初始资料.md",
+    "simulations/规划流程模拟包_v0.2/Run_Template/AGENTS.md",
+    "simulations/规划流程模拟包_v0.2/Run_Template/01_虚构学生初始资料.md",
+    "simulations/规划流程模拟包_v0.3/Run_Template/AGENTS.md",
+    "simulations/规划流程模拟包_v0.3/Run_Template/01_虚构学生初始资料.md",
+    "simulations/规划流程模拟包_v0.3/Run_Template/03_外部投放包_文件读写版.md",
+    "simulations/规划流程模拟包_v0.3/Run_Template/04_外部投放包_纯粘贴手动保存版.md",
+    "simulations/规划流程模拟包_v0.3/MANIFEST.json",
+    "simulations/规划流程模拟包_v0.3/build_delivery.py",
+    "simulations/规划流程模拟包_v0.2/run_autorun03.py",
+    ".github/workflows/verify.yml",
+    "tools/wf_core.py",
+    "tools/wf-verify",
+    "tools/wf-init",
+    "tools/selftest.py",
+    "tools/scan_repo.py",
+    "LICENSE",
+    "DATA_COMPLIANCE.md",
+]
+
+# 有意忽略的文件后缀（构建产物 / 缓存），不计为「意外漏提交」
+INTENTIONALLY_IGNORED_SUFFIX = (".pyc", ".pyo")
+
+
+def git_available():
+    try:
+        r = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"],
+                           capture_output=True, text=True, cwd=REPO)
+        return r.returncode == 0 and r.stdout.strip() == "true"
+    except OSError:
+        return False
+
+
+def tracked_files():
+    r = subprocess.run(["git", "ls-files"], capture_output=True, text=True, cwd=REPO)
+    return set(r.stdout.splitlines())
+
+
+def ignored_files():
+    r = subprocess.run(["git", "ls-files", "--others", "--ignored",
+                        "--exclude-standard"], capture_output=True, text=True, cwd=REPO)
+    return set(r.stdout.splitlines())
+
 
 
 def repo_files():
@@ -147,6 +198,40 @@ def main():
         print(f"  ✗ {abs_hits} 处")
     else:
         print("  ✓ 操作型文档未硬编码本机绝对路径")
+
+    # ---- 5. 必需文件必须随仓库发布（防「本地有、仓库里没有」）
+    print("\n── 必需文件入库检查 " + "─" * 36)
+    if not git_available():
+        print(f"  {YELLOW}·{RESET} 非 git 工作区，跳过（发行版 zip 亦然）")
+    else:
+        tracked = tracked_files()
+        missing = [p for p in REQUIRED_TRACKED_PATHS if not os.path.exists(os.path.join(REPO, p))]
+        untracked = [p for p in REQUIRED_TRACKED_PATHS
+                     if os.path.exists(os.path.join(REPO, p)) and p not in tracked]
+        if missing:
+            for p in missing:
+                errors.append(f"必需文件缺失：{p}")
+            print(f"  ✗ {len(missing)} 个必需文件不存在")
+        if untracked:
+            for p in untracked:
+                errors.append(f"必需文件未被 git 跟踪（发布后会缺失）：{p}")
+            print(f"  ✗ {len(untracked)} 个必需文件未被 git 跟踪")
+        if not missing and not untracked:
+            print(f"  ✓ {len(REQUIRED_TRACKED_PATHS)} 个必需文件均存在且已跟踪")
+
+        # 附带：报告「存在于工作区但被忽略且非有意忽略」的文件
+        accidental = sorted(
+            p for p in ignored_files()
+            if p.endswith((".md", ".py", ".json", ".yml", ".yaml"))
+            and not p.endswith(INTENTIONALLY_IGNORED_SUFFIX)
+        )
+        if accidental:
+            print(f"  ! {len(accidental)} 个文档/代码文件被 .gitignore 意外忽略：")
+            for p in accidental[:8]:
+                print(f"      {p}")
+            print("      → 若这些文件应当发布，须修正 .gitignore 并补提交")
+        else:
+            print("  ✓ 无被 .gitignore 意外忽略的文档/代码文件")
 
     # ---- 汇总
     print()

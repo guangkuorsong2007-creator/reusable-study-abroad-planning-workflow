@@ -17,9 +17,14 @@ venv/
 
 # ---- 外部投放运行目录（每次投放独立留档，不入库）----
 # 投放结果请归档至 simulations/规划流程模拟包_v0.3/评测记录/外部投放_<客户端>_<日期>/
-RUN_SYN102/
-RUN_SYN102_PASTE/
-RUN_*/
+#
+# ⚠️ 重要：忽略规则在 core.ignorecase=true（macOS 默认）下**大小写不敏感**。
+# 因此不可使用宽泛的 `RUN_*/` —— 它会连带误匹配 `Run_Template/`，
+# 导致模板与投放包**整目录未被提交**（已实际发生过，见 WF-D008）。
+# 改用 `RUN_SYN*` 精确前缀，并显式反忽略 Run_Template。
+RUN_SYN*/
+!**/Run_Template/
+!**/Run_Template/**
 
 # ---- 本地私有资料（严禁入库）----
 *.private.md
