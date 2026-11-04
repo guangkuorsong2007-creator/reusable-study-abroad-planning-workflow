@@ -1,10 +1,11 @@
 # Current Status / 当前进展
 
-## 当前阶段 · v0.4 全量交付，仓库开源发布 (WF-D007)
+## 当前阶段 · v0.4 全量交付，仓库已开源发布且 CI 全绿 (WF-D007 / WF-D008)
 
-- **更新时间**：2026-11-04T12:50:00+08:00 (Asia/Shanghai)
+- **更新时间**：2026-11-04T12:56:00+08:00 (Asia/Shanghai)
 - **负责 Agent**：MCode (mavis)
-- **当前状态**：v0.1–v0.4 全部技术资产就绪并通过持续验证；仓库已按**完全开源**策略发布至 GitHub。**唯一待办是用户人工执行 v0.3 外部客户端投放**。
+- **当前状态**：v0.1–v0.4 全部技术资产就绪；仓库已按**完全开源**策略发布至 GitHub 并通过 CI 五步验证。**唯一待办是用户人工执行 v0.3 外部客户端投放**。
+- **远端地址**：`https://github.com/guangkuorsong2007-creator/reusable-study-abroad-planning-workflow`（public，MIT）
 
 ---
 

@@ -190,7 +190,13 @@
      - **为何本地全绿**：本地工作区确有这些文件，工具读取的是真实文件；只有**远端 CI 的干净检出**才暴露缺失。
   5. **修复**：`.gitignore` 改为精确前缀 `RUN_SYN*/` 并显式反忽略 `!**/Run_Template/`；补提交 8 个遗漏文件。
   6. **新增守护**：`scan_repo.py` 增加「必需文件入库检查」——19 个必须随仓库发布的文件逐一校验存在性 + git 跟踪状态，并泛化报告「被 `.gitignore` 意外忽略」的文档/代码文件。守护有效性已实测（还原错误规则后正确报错并退出码 1）。
+  7. **CI 连跑三轮方转绿**，暴露两类问题：
+     - 第 1 轮（真实缺陷）：仓库残缺——8 个文件从未提交，公开仓库缺整个 v0.3 投放包与根模板（WF-D008）；
+     - 第 2 轮（守护自身假阳性）：`git ls-files` 在 `core.quotepath=true`（GitHub 默认）下转义非 ASCII 路径致比对失败 → 改用 `-z`；冻结快照中的绝对路径链接被误判为死链 → 死链检查改为只校验相对链接；
+     - 第 3 轮：**success**。
+  8. **许可识别修复**：原 `LICENSE` 在 MIT 正文后追加中文合规声明导致 licensee 无法识别 → 合规声明独立为 `DATA_COMPLIANCE.md`，`LICENSE` 恢复纯 MIT（GitHub `/license` 端点已返回 MIT）。
+  9. **仓库元数据**：添加 10 个主题（ai-agent / workflow / evaluation / cli / education / prompt-engineering / synthetic-data / study-abroad / immigration / tooling），开启 Issues 与 Wiki。
 - **Files Created**: `DATA_COMPLIANCE.md`。
-- **Files Modified**: `.gitignore`、`tools/scan_repo.py`（新增入库守护）、`README.md`、`AGENTS.md`、`LICENSE`、`03_Decisions.md`（新增 WF-D007 / WF-D008）、`05_Session_Log.md`、`00_Status.md`。
+- **Files Modified**: `.gitignore`、`tools/scan_repo.py`（新增入库守护 + CI 环境假阳性修复）、`README.md`、`AGENTS.md`、`LICENSE`、`03_Decisions.md`（新增 WF-D007 / WF-D008）、`05_Session_Log.md`、`00_Status.md`。
 - **Files Added to git（此前被误忽略）**: `simulations/规划流程模拟包_v0.2/Run_Template/` ×2、`simulations/规划流程模拟包_v0.3/Run_Template/` ×4、`templates/Run_Template/` ×2。
 - **Next**: 推送修复并确认 CI 转绿；随后待用户执行 v0.3 外部投放。
