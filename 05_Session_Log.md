@@ -78,3 +78,25 @@
 - **Files Modified**: `01_Framework.md`、`AGENTS.md`、`README.md`、`00_Status.md`、`03_Decisions.md`（新增 WF-D003）、`05_Session_Log.md`。
 - **Files NOT Modified**: `simulations/` 下全部基线产物、快照与哈希记录（**零改动**，命名统一为纯文档层操作）。
 - **Next**: 待用户执行外部投放；`handoff/` 遗留文件是否重写待裁定。
+
+---
+
+## 2026-11-04T11:41:27+08:00 · MCode (mavis) · handoff 接续入口重写与仓库死链清理 (WF-D004)
+
+- **Request**: 用户确认「听你的直接动手」——采纳上一轮建议，重写 `handoff/` 4 份遗留文件以消除死链与隐私冲突。
+- **Execution & Outcome**:
+  1. **死链全量扫描**：全仓 `/Users/songguangkuo` 引用按目录分布统计——`simulations/规划流程模拟包_v0.2` 28 处、v0.1 11 处（多属历史转录与冻结基线）、`handoff/` 13 处（**功能性死链**）、`docs/` 1 处、`AGENTS.md`/`00_Status.md`/`05_Session_Log.md`/`03_Decisions.md` 各 1–2 处（引用性表述，保留）。
+  2. **哈希覆盖核验**：确认 v0.2 的 `00_从这里开始_全流程教程.md` 与 `01_让Agent自动执行_调度提示词.md` **不在** `pre/final_snapshot_manifest.json` 与 `input_integrity.json` 覆盖范围，属运营文档而非证据产物，可安全改造。
+  3. **handoff 4 份全部重写**：
+     - `规划流程复用_跨Agent接续入口.md`：改指当前产品库阅读顺序与材料位置，**保留并升级「证据边界与局限」整节**（补入重放脚本性质、重置命名规则、数据保护）；
+     - `规划流程复用_可复制启动提示词.md`：改指本产品库，删去「个人档案」指令与 `未来规划` 路径，新增隐私红线前提、命名规则与 v0.3 准备动作；
+     - `自动模拟运行结果.md`：由 AutoRun01 单点记录改为**历次运行汇总索引**（AutoRun01/02/03 + v0.3 待执行），链接全部改仓库相对路径，原叙述与「证据边界与审计校准」6 条完整保留并增至 6 条；
+     - `新Agent模拟教程入口.md`：改为「现在该用哪套包」对照表，指向 v0.3 双版本投放包与 v0.2 教程，保留答案卡隔离/不联网/诚实记录边界三纪律，补充形态 B 固有局限。
+  4. **每份文件加「历史说明」段**，显式声明旧指向已于 WF-D001 作废，避免与历史存档混淆。
+  5. **v0.2 运营文档路径参数化**：教程与调度提示词中的绝对路径改为相对模拟包根目录；两处「真实『未来规划』」表述改为「模拟包以外的任何目录」。
+- **Files Modified**:
+  - `handoff/规划流程复用_跨Agent接续入口.md`、`handoff/规划流程复用_可复制启动提示词.md`、`handoff/自动模拟运行结果.md`、`handoff/新Agent模拟教程入口.md`（**全部重写**）；
+  - `simulations/规划流程模拟包_v0.2/00_从这里开始_全流程教程.md`、`.../01_让Agent自动执行_调度提示词.md`（路径参数化）；
+  - `03_Decisions.md`（新增 WF-D004）、`04_Evidence_Registry.md`（新增第四节接续入口索引）、`00_Status.md`、`05_Session_Log.md`。
+- **Files NOT Modified**: `AutoRun01/02/03` 全部产物、快照、manifest、转录、输入材料、答案卡；`v0.1` 全包；`v0.3` 全包；`Run_Template/AGENTS.md`（其哈希已入 `input_integrity.json`，其中旧工作区名属历史快照，保留原貌）。
+- **Next**: 待用户执行 v0.3 外部投放；回收结果后按结果记录表复核并归档登记。

@@ -1,6 +1,6 @@
 # Reusable Workflow Governance / 工作流项目治理规约
 
-Canonical directory: `/Users/songguangkuo/Documents/可复用留学规划流程`.
+Canonical directory: 本仓库根目录（本机当前副本为 `/Users/songguangkuo/Documents/可复用留学规划流程`；仓库被克隆或移动后以实际所在目录为准）。
 Applies to every agent working on the Reusable Study Abroad Planning Workflow product repository.
 
 ---
